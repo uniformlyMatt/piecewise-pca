@@ -74,7 +74,7 @@ def plot_result(df, I1, I2, pwpca_coords, pca_coords):
     plt.show()
 
 if __name__ == '__main__':
-    df = pd.read_excel('../data/pca_inputs_standardized.xlsx')
+    df = pd.read_excel('data/pca_inputs_standardized.xlsx')
     df.info()
     latent_dim = 2
 
@@ -82,21 +82,21 @@ if __name__ == '__main__':
     pca = PCA(n_components=latent_dim)
     
     # load the pickled PWPCA model parameters and index sets
-    with open('../data/model_I1.pkl', 'rb') as file:
+    with open('data/model_I1.pkl', 'rb') as file:
         I1 = pickle.load(file)
-    with open('../data/model_I2.pkl', 'rb') as file:
+    with open('data/model_I2.pkl', 'rb') as file:
         I2 = pickle.load(file)
-    with open('../data/model_B1.pkl', 'rb') as file:
+    with open('data/model_B1.pkl', 'rb') as file:
         B1 = pickle.load(file)
-    with open('../data/model_B2.pkl', 'rb') as file:
+    with open('data/model_B2.pkl', 'rb') as file:
         B2 = pickle.load(file)
-    with open('../data/model_m1.pkl', 'rb') as file:
+    with open('data/model_m1.pkl', 'rb') as file:
         m1 = pickle.load(file)
-    with open('../data/model_m2.pkl', 'rb') as file:
+    with open('data/model_m2.pkl', 'rb') as file:
         m2 = pickle.load(file)
-    with open('../data/model_BIC.pkl', 'rb') as file:
+    with open('data/model_BIC.pkl', 'rb') as file:
         BIC = pickle.load(file)
-    with open('../data/model_rho2.pkl', 'rb') as file:
+    with open('data/model_rho2.pkl', 'rb') as file:
         rho2 = pickle.load(file)
     
     P1 = np.matmul(m1, B1.T)
@@ -105,22 +105,24 @@ if __name__ == '__main__':
 
     partition = P1.shape[0]
     
-    latent_pca = PCA(n_components=latent_dim).fit(P)
+    # latent_pca = PCA(n_components=latent_dim).fit(P)
     pca2 = PCA(n_components=latent_dim).fit(np.vstack((m1, m2)))
-    print(rho2*sum(pca2.explained_variance_ratio_))
+    print('Total explained variance (PWPCA): {}'.format(rho2*sum(pca2.explained_variance_ratio_)))
 
-    BasisV = latent_pca.components_.T
+    MV = pca2.fit_transform(np.vstack((m1, m2)))
 
-    BasisVTBasisV = np.matmul(BasisV.T, BasisV)
-    BVTBV_inv = np.linalg.inv(BasisVTBasisV)
-    MV = np.matmul(P, np.matmul(BasisV, BVTBV_inv))
+    # BasisV = latent_pca.components_.T
+
+    # BasisVTBasisV = np.matmul(BasisV.T, BasisV)
+    # BVTBV_inv = np.linalg.inv(BasisVTBasisV)
+    # MV = np.matmul(P, np.matmul(BasisV, BVTBV_inv))
 
     MV1 = MV[:partition, :]
     MV2 = MV[partition:, :]
 
     pca_coords = pca.fit_transform(X=df)
         
-    explained_rho2 = rho2*latent_pca.explained_variance_ratio_
+    explained_rho2 = rho2*pca2.explained_variance_ratio_
     pca_var = pca.explained_variance_ratio_
     
     print('Pseudo-R2: {}'.format(rho2))
@@ -130,10 +132,13 @@ if __name__ == '__main__':
     print('PWPCA\n Dim 1: {}\n Dim 2: {}'.format(explained_rho2[0], explained_rho2[1]))
     print('PCA\n Dim 1: {}\n Dim 2: {}'.format(pca_var[0], pca_var[1]))
 
-    df_save = pd.DataFrame(np.vstack((MV1, MV2)), columns=['PWPCA_PC1', 'PWPCA_PC2'])
+    df_save = pd.DataFrame(np.vstack((m1, m2)), columns=['PWPCA_PC1', 'PWPCA_PC2'])
     df_save.info()
-    df_save.to_csv('../data/bib_decorrelated_latent_space.csv', index=False)
+    df_save.to_csv('data/bib_decorrelated_latent_space.csv', index=False)
 
     sns.set_theme()
     # now plot piecewise pca and classical PCA
-    # plot_result(df=df, I1=I1, I2=I2, pwpca_coords=(MV1, MV2), pca_coords=pca_coords)
+    plot_result(df=df, I1=I1, I2=I2, pwpca_coords=(MV1, MV2), pca_coords=pca_coords)
+    plt.scatter(x=MV1[:, 0], y=MV1[:, 1])
+    plt.scatter(x=MV2[:, 0], y=MV2[:, 1])
+    plt.show()
